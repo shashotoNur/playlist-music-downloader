@@ -1,4 +1,4 @@
-import os, io, re, shutil, sys, requests, subprocess, datetime
+import os, io, re, shutil, sys, requests, subprocess, datetime, logging
 from PIL import Image
 from pytube import Playlist
 from pytube.exceptions import RegexMatchError, VideoUnavailable
@@ -7,10 +7,18 @@ from pytube.exceptions import RegexMatchError, VideoUnavailable
 AUDIO_DIRECTORY = "audio"
 COVER_DIRECTORY = "cover_images"
 
+# Configure logging
+log_file = 'error.log'  # Specify the name of the log file
+logging.basicConfig(filename=log_file, level=logging.ERROR,
+                    format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
 # Print error messages with timestamp
 def print_error_message(message):
+    # Get the timestamp
     current_time = datetime.datetime.now()
     formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+
+    logging.error(message)
     error_message = f"[{formatted_time}] Error: {message}"
     print(error_message)
 
@@ -60,9 +68,9 @@ def download_music_with_cover(playlist_title, video):
         os.remove(mp3_audio_file_path)
 
     except (RegexMatchError, VideoUnavailable) as e:
-        print_error_message(str(e))
+        print_error_message(str(e) + '\nVideo URL:' + video.watch_url)
     except Exception as e:
-        print_error_message(str(e))
+        print_error_message(str(e) + '\nVideo URL:' + video.watch_url)
 
 # Function to download all videos from a playlist
 def download_playlist(playlist_url):
@@ -70,6 +78,7 @@ def download_playlist(playlist_url):
         # Create a YouTube playlist object
         playlist = Playlist(playlist_url)
         playlist_title = playlist.title
+        playlist_length = len(playlist.videos)
         print(f"Downloading playlist: {playlist_title}")
 
         # Create the REQUIRED directories if they don't already exist
@@ -80,7 +89,9 @@ def download_playlist(playlist_url):
         # Iterate through the playlist videos and download each one
         for idx, video in enumerate(playlist.videos):
             download_music_with_cover(playlist_title, video)
-            print(f"Progress: {(idx+1/len(playlist.videos))*100}%", " " * 10, end="\r")
+            progress = ((idx+1) / playlist_length) * 100
+            print(
+                f"\x1b[6;30;42mProgress: {progress}%\x1b[0m", end="\r")
 
         print("Download completed!")
 
@@ -89,13 +100,12 @@ def download_playlist(playlist_url):
     except Exception as e:
         print_error_message(str(e))
     finally:
-        # Safely remove the temporary directories
         try:
+            # Safely remove the temporary directories
             shutil.rmtree(AUDIO_DIRECTORY)
             shutil.rmtree(COVER_DIRECTORY)
         except Exception as e:
             print_error_message(str(e))
-
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
