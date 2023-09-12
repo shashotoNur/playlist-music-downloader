@@ -80,7 +80,11 @@ You can customize the script by modifying the following constants in the script:
    - `AUDIO_DIRECTORY`: The directory to store downloaded audio (MP4) files.
    - `COVER_DIRECTORY`: The directory to store downloaded cover images (JPEG).
 
-2. **`download_music_with_cover` Function:**
+2. **`print_error_message` Function:**
+
+   This function is defined to print error messages with a timestamp. It takes an error message as an argument, retrieves the current timestamp, and formats the error message with the timestamp before printing it.
+
+3. **`download_music_with_cover` Function:**
 
    This function downloads a single YouTube video's audio and cover image, embeds the cover image into the audio, and saves the final MP3 file. Here are the key steps:
 
@@ -93,7 +97,7 @@ You can customize the script by modifying the following constants in the script:
    - Use `ffmpeg` to merge the audio and cover image into an MP3 file in the `PLAYLIST_DIRECTORY`.
    - Remove the temporary MP4 and cover image files.
 
-3. **`download_playlist` Function:**
+4. **`download_playlist` Function:**
 
    This function downloads all videos from a YouTube playlist. Here are the key steps:
 
@@ -102,11 +106,12 @@ You can customize the script by modifying the following constants in the script:
    - Iterate through the playlist videos and call `download_music_with_cover` for each video.
    - After all videos are processed, remove the temporary `AUDIO_DIRECTORY` and `COVER_DIRECTORY`.
 
-4. **Main Execution:**
+5. **Main Execution:**
 
    - Check if the script is executed with the correct number of command-line arguments (the playlist URL).
    - Validate the YouTube playlist URL using a regex pattern.
    - Call the `download_playlist` function to start downloading audio with cover images from the playlist.
+   - Errors are caught and logged if the URL is invalid or if any exceptions occur during the download process.
 
 The script will proceed to download each video in the playlist, convert the audio to an MP3 file with an embedded cover image, save it in the specified `PLAYLIST_DIRECTORY`, and remove the temporary files stored in `AUDIO_DIRECTORY` and `COVER_DIRECTORY`.
 
