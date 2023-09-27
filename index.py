@@ -29,7 +29,7 @@ def download_music_with_cover(playlist_title, video):
         streams = video.streams
         audio_stream = streams.filter(
             only_audio=True, file_extension='mp4').first()
-        video_name = f"{video.title} - {video.author}"
+        video_name = f"{video.title} - {video.author}".replace("/", "-")
 
         # Download the audio stream
         audio_file_path = os.path.join(AUDIO_DIRECTORY, f"{video_name}.mp4")
@@ -91,7 +91,7 @@ def download_playlist(playlist_url):
             download_music_with_cover(playlist_title, video)
             progress = ((idx+1) / playlist_length) * 100
             print(
-                f"\x1b[6;30;42mProgress: {progress}%\x1b[0m", end="\r")
+                f"\x1b[6;30;42mProgress: {progress}%\x1b[0m" + " "*10, end="\r")
 
         print("Download completed!")
 
