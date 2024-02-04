@@ -11,6 +11,7 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+*/
 .Python
 build/
 develop-eggs/
@@ -215,4 +216,3 @@ pip-selfcheck.json
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/python,venv,text,visualstudiocode
-

@@ -25,13 +25,14 @@ def print_error_message(message):
 # Function to download a YouTube video as audio and its cover image
 def download_music_with_cover(playlist_title, video):
     try:
-        # Create a YouTube object
-        streams = video.streams
-        audio_stream = streams.filter(
-            only_audio=True, file_extension='mp4').first()
-        video_name = f"{video.title} - {video.author}".replace("/", "-")
+        video_name = f"{video.title} - {video.author}".replace("/", "|")
+        output_file_name = os.path.join(playlist_title, f"{video_name}.mp3")
+        if os.path.exists(output_file_name):
+            return
 
         # Download the audio stream
+        audio_stream = video.streams.filter(
+            only_audio=True, file_extension='mp4').first()
         audio_file_path = os.path.join(AUDIO_DIRECTORY, f"{video_name}.mp4")
         audio_stream.download(output_path=AUDIO_DIRECTORY,
                               filename=video_name+".mp4")
@@ -41,31 +42,34 @@ def download_music_with_cover(playlist_title, video):
         response = requests.get(thumbnail_url)
         image_data = response.content
 
-        # Create a Pillow image object
+        # Create a Pillow image object and save it
         image = Image.open(io.BytesIO(image_data))
-
-        # Save the thumbnail as a cover image
         image_file_name = os.path.join(COVER_DIRECTORY, f"{video_name}.jpg")
         image.save(image_file_name, "JPEG")
 
         # Redirect both stdout and stderr to the null device (Linux/Unix) or "nul" (Windows)
         stream = open(os.devnull, 'w') if os.name != 'nt' else open("nul", 'w')
 
-        # Convert the downloaded audio (in MP4 format) to MP3
-        mp3_audio_file_path = os.path.join(
-            AUDIO_DIRECTORY, f"{video_name}.mp3")
-        subprocess.call(['ffmpeg', '-i', audio_file_path,
-                        mp3_audio_file_path], stdout=stream, stderr=subprocess.STDOUT)
+        # Combine operations into a single ffmpeg command
+        command = [
+            'ffmpeg',
+            '-i', audio_file_path, # Input the audio file
+            '-i', image_file_name, # Input the cover image
+            '-map', '0:0',  # Map audio stream from first input
+            '-map', '1:0',  # Map image stream from second input
+            '-c:a', 'libmp3lame',  # Convert audio to MP3
+            '-metadata', f'title={video.title}',  # Set audio title
+            '-metadata', f'artist={video.author}',  # Set audio artist
+            '-id3v2_version', '3',  # Specify ID3v2 version
+            '-n', output_file_name
+        ]
 
-        # Merge audio (MP3) and cover image using ffmpeg
-        output_file_name = os.path.join(playlist_title, f"{video_name}.mp3")
-        subprocess.call(['ffmpeg', '-i', mp3_audio_file_path, '-i', image_file_name, '-map',
-                         '0', '-map', '1', '-c', 'copy', '-id3v2_version', '3', '-n', output_file_name], stdout=stream, stderr=subprocess.STDOUT)
+        # Execute the command
+        subprocess.call(command, stdout=stream, stderr=subprocess.STDOUT)
 
         # Remove the downloaded MP4, cover image, and temporary MP3 file
         os.remove(audio_file_path)
         os.remove(image_file_name)
-        os.remove(mp3_audio_file_path)
 
     except (RegexMatchError, VideoUnavailable) as e:
         print_error_message(str(e) + '\nVideo URL:' + video.watch_url)
@@ -79,6 +83,7 @@ def download_playlist(playlist_url):
         playlist = Playlist(playlist_url)
         playlist_title = playlist.title
         playlist_length = len(playlist.videos)
+
         print(f"Downloading playlist: {playlist_title}")
 
         # Create the REQUIRED directories if they don't already exist
@@ -116,6 +121,7 @@ if __name__ == "__main__":
     # Validate the YouTube playlist URL using a simple regex
     url_pattern = re.compile(
         r'^(?:https?://)?(?:www\.)?youtube\.com/playlist\?list=[A-Za-z0-9_-]+(?:&[A-Za-z0-9_=-]+)*$')
+
     if not url_pattern.match(playlist_url):
         print_error_message(
             "Invalid YouTube playlist URL. Please provide a valid playlist URL.")
